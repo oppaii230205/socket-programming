@@ -38,19 +38,22 @@ def download_chunk(file_name, chunk_index):
     client_socket = socket(AF_INET, SOCK_STREAM)
     client_socket.connect((SERVER_HOST, SERVER_PORT))
     
-    # Send the file's name to server in format: filename.zip
+    # Send the file's name to server
     send_msg(client_socket, (file_name.encode('utf-8')))
 
+    # Receive msg that contains file_size and chunk_size
     msg = recv_msg(client_socket)
+
     file_size, chunk_size = map(int, msg.decode('utf-8').split(','))
     print(f"=====> file_size: {file_size}, chunk_size: {chunk_size}, chunk_download_index {chunk_index}")
-    
-    # chunk_data = b''
-    # expected_size = chunk_size if chunk_index < NUM_CHUNKS - 1 else file_size - chunk_index * chunk_size;
+        
+    # Send the chunk_index (offset) to server to download the specific chunk
     send_msg(client_socket, f"{chunk_index}".encode('utf-8'))
+    
+    # Reveive the chunk from server
     chunk_data = recv_msg(client_socket)
     
-    # For testing purpose
+    # Write data to the client's file
     with file_write_lock:
         with open(file_name.split('.')[0] + '_client.txt', 'r+b') as file:
             file.seek(chunk_index * chunk_size)
@@ -75,21 +78,25 @@ def start_client():
     # Send the file's name to server in format: filename.zip
     send_msg(client_socket, (file_name.encode('utf-8')))
 
+    # Receive msg that contains file_size and chunk_size
     msg = recv_msg(client_socket)
     file_size, chunk_size = map(int, msg.decode('utf-8').split(','))
     
-    # Close the connection
+    # Close the connection (will be caught in server's side)
     client_socket.close()
     
+    # Truncate the file to the size that can the later 4 threads can write the data into
     with open(file_name.split('.')[0] + '_client.txt', 'wb') as file:
        file.truncate(file_size)
     
+    # Establish 4 connections to the server for downloading 4 chunks respectively
     threads = []
     for chunk_index in range(NUM_CHUNKS):
         thread = threading.Thread(target=download_chunk, args=(file_name, chunk_index))
         thread.start()
         threads.append(thread)
     
+    # Wait for all the threads have finished
     for thread in threads:
         thread.join()
     

@@ -32,7 +32,7 @@ def recvall(sock, n):
     return data
 
 def handle_client(client_socket, client_address):    
-    # Get name and chunk of the file to be downloaded from the client
+    # Get name of the file to be downloaded from the client
     msg = recv_msg(client_socket)
     
     # Not the client to send data to
@@ -40,28 +40,31 @@ def handle_client(client_socket, client_address):
         client_socket.close()
         return
 
-    # print(f"===== > ADDRESS OF CLIENT {client_address} and message: {buffer.decode('utf-8')}")
+    # Decode the msg to get the path of the file
     file_path = msg.decode('utf-8')
-  
-    # print(f"=====> file_path: {file_path}, chunk_index: {chunk_index}")
 
+    # Calculate file_size and chunk_size for sending to clients 
     file_size = os.path.getsize(file_path)
     chunk_size = file_size // NUM_CHUNKS
     send_msg(client_socket, f"{file_size},{chunk_size}".encode('utf-8'))
     # print(f"{file_size},{chunk_size}")
 
     with open(file_path, 'rb') as file:
+        # Receive chunk_index 
         msg = recv_msg(client_socket)
 
-        # Not the client to send data to
+        # Not the client to send data to (the client that START the connection, not the DOWNLOADING client)
         if not msg:
             client_socket.close()
             return
         
+        # Decode the msg to chunk_index
         chunk_index = int(msg.decode('utf-8'))
 
+        # Seek the file's cursor to correct position
         file.seek(chunk_index * chunk_size)
 
+        # Determine how many bytes are going to be read and sent 
         if chunk_index < NUM_CHUNKS - 1:
             chunk_data = file.read(chunk_size)
         else:

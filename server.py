@@ -41,8 +41,7 @@ def handle_client(client_socket, client_address):
         return
 
     # print(f"===== > ADDRESS OF CLIENT {client_address} and message: {buffer.decode('utf-8')}")
-    file_path, chunk_index = msg.decode('utf-8').split('-')
-    chunk_index = int(chunk_index)
+    file_path = msg.decode('utf-8')
   
     # print(f"=====> file_path: {file_path}, chunk_index: {chunk_index}")
 
@@ -52,6 +51,15 @@ def handle_client(client_socket, client_address):
     # print(f"{file_size},{chunk_size}")
 
     with open(file_path, 'rb') as file:
+        msg = recv_msg(client_socket)
+
+        # Not the client to send data to
+        if not msg:
+            client_socket.close()
+            return
+        
+        chunk_index = int(msg.decode('utf-8'))
+
         file.seek(chunk_index * chunk_size)
 
         if chunk_index < NUM_CHUNKS - 1:
@@ -60,11 +68,6 @@ def handle_client(client_socket, client_address):
             chunk_data = file.read(file_size - chunk_index * chunk_size)
         
         print(f"Sending data from byte: {chunk_index * chunk_size}")
-        
-        with open('test_server.txt', 'w+b') as fileTest:
-            fileTest.seek(chunk_index * chunk_size)
-            fileTest.write(chunk_data)
-
         send_msg(client_socket, chunk_data)
     
     client_socket.close()

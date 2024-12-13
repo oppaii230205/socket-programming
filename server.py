@@ -35,9 +35,17 @@ def handle_client(client_socket, client_address):
     # Get name of the file to be downloaded from the client
     msg = recv_msg(client_socket)
     
-    # Not the client to send data to
-    if not msg:
-        client_socket.close()
+    # The download list is requested
+    if msg.decode('utf-8') == 'START':
+        with open('text.txt', 'rb') as file:
+            data = file.read()
+            send_msg(client_socket, data)
+
+        # Wait for the client to close connection
+        msg = recv_msg(client_socket)
+        
+        if not msg:
+            client_socket.close()
         return
 
     # Decode the msg to get the path of the file
@@ -78,7 +86,7 @@ def handle_client(client_socket, client_address):
 def start_server():
     server_socket = socket(AF_INET, SOCK_STREAM)
     server_socket.bind((SERVER_HOST, SERVER_PORT))
-    server_socket.listen(5)
+    server_socket.listen()
     print(f"Server listening on {SERVER_HOST}:{SERVER_PORT}")
 
     while True:

@@ -3,7 +3,7 @@ import struct
 import threading
 from socket import socket, AF_INET, SOCK_STREAM
 
-SERVER_HOST = 'localhost'
+SERVER_HOST = '0.0.0.0'
 SERVER_PORT = 5000
 NUM_CHUNKS = 4  # Fixed number of chunks
 
@@ -78,7 +78,7 @@ def handle_client(client_socket, client_address):
         else:
             chunk_data = file.read(file_size - chunk_index * chunk_size)
         
-        print(f"Sending data from byte: {chunk_index * chunk_size}")
+        # print(f"Sending data from byte: {chunk_index * chunk_size}")
         send_msg(client_socket, chunk_data)
     
     client_socket.close()
@@ -97,5 +97,4 @@ def start_server():
         client_handler.start()
 
 if __name__ == "__main__":
-    # file_path = 'server_1.txt'
     start_server()

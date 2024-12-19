@@ -1,14 +1,14 @@
 import os
+import random
 import struct
 import threading
 import signal # For catching Ctrl C
 import time
-# from functools import partial # For binding arguments
 from socket import socket, AF_INET, SOCK_STREAM
 
 from tqdm import tqdm
 
-SERVER_HOST = 'localhost'
+SERVER_HOST = '192.168.247.129'
 SERVER_PORT = 5000
 NUM_CHUNKS = 4  # Fixed number of chunks
 
@@ -21,7 +21,7 @@ download_list = []
 current_list_size = 0
 
 # Use a threading lock to ensure safe file writing
-file_write_lock = threading.Lock()
+# file_write_lock = threading.Lock()
 
 def signal_handler(sig, frame):
     print('You\'ve pressed Ctrl+C! The program will be terminated now...')
@@ -53,7 +53,7 @@ def recvall(sock, n, download_process=None):
         return data
     else:
         data = bytearray()
-        with tqdm(total=n, ncols=100, unit='B', unit_scale=True, desc=f"Downloading {download_process.file_name} part {download_process.chunk_index + 1}") as pbar:
+        with tqdm(total=n, ncols=100, unit='B', unit_scale=True, desc=f"Downloading {download_process.file_name} part {download_process.chunk_index + 1}", position=download_process.chunk_index, leave=False) as pbar:
             prev_len = 0
             while len(data) < n:
                 packet = sock.recv(n - len(data))
@@ -61,6 +61,7 @@ def recvall(sock, n, download_process=None):
                     return None
                 data.extend(packet)
                 pbar.update(len(data)- prev_len)
+                time.sleep(.30 * random.random())
                 prev_len = len(data)
         return data
 
@@ -97,6 +98,10 @@ def get_list():
     with open('text_from_server.txt', 'r') as file:
         print(file.read())
 
+    print('>> ----------  END OF LIST  ---------- <<')
+    
+    print("\nEnter the file to be downloaded in 'input.txt'...")
+
     # Close connection
     client_socket.close()
 
@@ -120,17 +125,18 @@ def download_chunk(file_name, chunk_index):
     chunk_data = recv_msg(client_socket, download_process)
     
     # Write data to the client's file
+    '''
     with file_write_lock:
         with open(file_name.split('.')[0] + '_client.' + file_name.split('.')[1], 'r+b') as file:
             file.seek(chunk_index * chunk_size)
             file.write(chunk_data)
-    
+    '''
 
-    '''
-    with open(file_name.split('.')[0] + '_client.txt', 'r+b') as file:
-            file.seek(chunk_index * chunk_size)
-            file.write(chunk_data)
-    '''
+    
+    with open(file_name.split('.')[0] + '_client.' + file_name.split('.')[1], 'r+b') as file:
+        file.seek(chunk_index * chunk_size)
+        file.write(chunk_data)
+    
     
     client_socket.close()
 
@@ -175,11 +181,11 @@ def start_client():
         for thread in threads:
             thread.join()
         
-        print(f"File {file_name} downloaded successfully.")
+        tqdm.write(f"\nFile {file_name} downloaded successfully.")
         current_list_size += 1 # Update the number of downloaded file
 
 if __name__ == "__main__":
-    # Close the connection by pressing 'Ctrl + C' (will be caught in server's side)
+    # Close the connection by pressing 'Ctrl + C'
     signal.signal(signal.SIGINT, signal_handler)
     
     get_list()

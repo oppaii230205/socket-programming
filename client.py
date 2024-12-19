@@ -133,7 +133,7 @@ def download_chunk(file_name, chunk_index):
     '''
 
     
-    with open(file_name.split('.')[0] + '_client.' + file_name.split('.')[1], 'r+b') as file:
+    with open(file_name, 'r+b') as file:
         file.seek(chunk_index * chunk_size)
         file.write(chunk_data)
     
@@ -167,7 +167,7 @@ def start_client():
         client_socket.close() # Still needed because this socket is not for downloading
 
         # Truncate the file to the size that can the later 4 threads can write the data into
-        with open(file_name.split('.')[0] + '_client.' + file_name.split('.')[1], 'wb') as file:
+        with open(file_name, 'wb') as file:
             file.truncate(file_size)
         
         # Establish 4 connections to the server for downloading 4 chunks respectively
